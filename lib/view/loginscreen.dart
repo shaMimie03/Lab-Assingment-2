@@ -40,16 +40,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (data['status'] == 'success') {
         Worker worker = Worker.fromJson(data['data']);
 
-        // Save data to SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
 
         prefs.setBool("loggedIn", true);
-        prefs.setString(
-          "worker",
-          jsonEncode(data['data']),
-        ); // Save the whole worker object as JSON
+        prefs.setString("worker", jsonEncode(data['data']));
 
-        // Check if "Remember Me" is selected, and save it
         if (_rememberMe) {
           prefs.setBool("rememberMe", true);
         } else {

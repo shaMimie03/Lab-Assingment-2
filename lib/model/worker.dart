@@ -15,6 +15,8 @@ class Worker {
     address = json['address'];
   }
 
+  get id => null;
+
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['id'] = workerId;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wtms/view/tasklistscreen.dart';
 import 'view/splashscreen.dart';
 import 'view/loginscreen.dart';
 import 'view/registerscreen.dart';
@@ -33,6 +34,11 @@ class MyApp extends StatelessWidget {
           } else {
             return const LoginScreen();
           }
+        },
+
+        '/tasks': (context) {
+          final workerId = ModalRoute.of(context)?.settings.arguments as int;
+          return TaskListScreen(workerId: workerId);
         },
       },
     );
