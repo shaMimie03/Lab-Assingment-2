@@ -20,7 +20,6 @@ class _SubmissionHistoryScreenState extends State<SubmissionHistoryScreen> {
   Map<int, TextEditingController> editControllers = {};
 
   final Color _primaryColor = const Color.fromARGB(255, 38, 74, 38);
-  final Color _accentColor = const Color.fromARGB(255, 76, 144, 76);
 
   @override
   void initState() {
