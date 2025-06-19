@@ -1,17 +1,75 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wtms/config.dart';
 import 'package:wtms/model/worker.dart';
-import 'package:wtms/view/tasklistscreen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final Worker worker;
 
   const ProfileScreen({super.key, required this.worker});
 
-  _logout(BuildContext context) async {
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _phoneController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.worker.fullName ?? '');
+    _emailController = TextEditingController(text: widget.worker.email ?? '');
+    _phoneController = TextEditingController(text: widget.worker.phone ?? '');
+  }
+
+  _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  _updateProfile() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("${MyConfig.myurl}/update_profile.php"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "worker_id": int.parse(widget.worker.workerId ?? '0'),
+          "full_name": _nameController.text,
+          "email": _emailController.text,
+          "phone": _phoneController.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(data['message'])));
+        widget.worker.fullName = _nameController.text;
+        widget.worker.email = _emailController.text;
+        widget.worker.phone = _phoneController.text;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Update failed')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -23,118 +81,116 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: const Color.fromARGB(255, 38, 74, 38),
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            const SizedBox(height: 20),
-            Center(
-              child: Image.asset("assets/images/profile.png", height: 180),
-            ),
-            const SizedBox(height: 20),
-            _buildProfileInfoCard(),
-            const SizedBox(height: 30),
-            _buildActionButtons(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileInfoCard() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Welcome, ${worker.fullName}!",
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 38, 74, 38),
               ),
+              accountName: Text(widget.worker.fullName ?? 'No Name'),
+              accountEmail: Text(widget.worker.email ?? 'No Email'),
+              currentAccountPicture: const CircleAvatar(
+                backgroundImage: AssetImage('assets/images/profile.png'),
+              ),
             ),
-            const Divider(height: 20),
-            _buildInfoRow("Worker ID", worker.workerId ?? 'N/A'),
-            _buildInfoRow("Email", worker.email ?? 'N/A'),
-            _buildInfoRow("Phone", worker.phone ?? 'N/A'),
-            _buildInfoRow("Address", worker.address ?? 'N/A'),
+            ListTile(
+              leading: const Icon(Icons.task),
+              title: const Text("Tasks"),
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/tasks',
+                  arguments: widget.worker,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text("History"),
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/history',
+                  arguments: widget.worker,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/profile',
+                  arguments: widget.worker,
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text("Logout"),
+              onTap: _logout,
+            ),
           ],
         ),
       ),
-    );
-  }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              "$label:",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 61, 117, 61),
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Image.asset("assets/images/profile.png", height: 160),
+            const SizedBox(height: 10),
+            Text(
+              widget.worker.username ?? 'username',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
               ),
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          TaskListScreen(workerId: int.parse(worker.workerId!)),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: "Full Name"),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _phoneController,
+              decoration: const InputDecoration(labelText: "Phone"),
+            ),
+            const SizedBox(height: 20),
+            _isSaving
+                ? const CircularProgressIndicator()
+                : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 61, 117, 61),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: const Text(
+                      "Save Changes",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: _updateProfile,
+                  ),
                 ),
-              );
-            },
-            child: const Text(
-              "View My Tasks",
-              style: TextStyle(fontSize: 16, color: Colors.white),
-            ),
-          ),
+          ],
         ),
-        const SizedBox(height: 15),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[700],
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => _logout(context),
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text("Logout", style: TextStyle(color: Colors.white)),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

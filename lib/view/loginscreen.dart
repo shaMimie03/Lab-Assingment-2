@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
           prefs.setBool("rememberMe", false);
         }
 
-        Navigator.pushReplacementNamed(context, '/profile', arguments: worker);
+        Navigator.pushReplacementNamed(context, '/home', arguments: worker);
       } else {
         _showMessage(data['message']);
       }

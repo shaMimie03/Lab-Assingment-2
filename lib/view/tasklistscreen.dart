@@ -3,18 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:wtms/config.dart';
 import 'package:wtms/model/work.dart';
+import 'package:wtms/model/worker.dart';
 import 'package:wtms/view/submissionscreen.dart';
 
 class TaskListScreen extends StatefulWidget {
   final int workerId;
-  const TaskListScreen({required this.workerId});
+  final Worker worker;
+
+  const TaskListScreen({
+    super.key,
+    required this.workerId,
+    required this.worker,
+  });
 
   @override
   _TaskListScreenState createState() => _TaskListScreenState();
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  late Future<List<Work>> _tasks;
+  late Future<List<Work>> _futureTasks;
+
   final Color _primaryColor = const Color.fromARGB(255, 38, 74, 38);
   final Color _accentColor = const Color.fromARGB(255, 76, 144, 76);
 
@@ -26,21 +34,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
 
     final data = jsonDecode(response.body);
-    print("Response body: ${response.body}"); // Debug
-
     if (data['status'] == 'success') {
-      return (data['tasks'] as List)
-          .map((json) => Work.fromJson(json))
-          .toList();
+      return (data['data'] as List).map((json) => Work.fromJson(json)).toList();
     } else {
       throw Exception(data['message'] ?? 'Failed to load tasks');
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _tasks = fetchTasks();
   }
 
   Color getStatusColor(String status) {
@@ -70,11 +68,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _futureTasks = fetchTasks();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 170, 185, 187),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Assigned Tasks',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
@@ -86,11 +90,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           setState(() {
-            _tasks = fetchTasks();
+            _futureTasks = fetchTasks();
           });
         },
         child: FutureBuilder<List<Work>>(
-          future: _tasks,
+          future: _futureTasks,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
@@ -100,7 +104,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       "Loading tasks...",
                       style: TextStyle(color: _primaryColor, fontSize: 16),
@@ -113,9 +117,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red, size: 48),
-                    SizedBox(height: 16),
-                    Text(
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
                       "Failed to load tasks",
                       style: TextStyle(
                         color: Colors.red,
@@ -123,29 +131,30 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       "${snapshot.error}",
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey[700], fontSize: 14),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
                         ),
                       ),
                       onPressed: () {
                         setState(() {
-                          _tasks = fetchTasks();
+                          _futureTasks = fetchTasks();
                         });
                       },
-                      child: Text(
+                      child: const Text(
                         "Retry",
                         style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
@@ -163,7 +172,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       color: Colors.grey[400],
                       size: 72,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       "No tasks assigned",
                       style: TextStyle(
@@ -172,7 +181,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       "You currently don't have any tasks assigned to you.",
                       textAlign: TextAlign.center,
@@ -184,7 +193,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
             }
 
             final tasks = snapshot.data!;
-
             return ListView.builder(
               padding: const EdgeInsets.all(12.0),
               itemCount: tasks.length,
@@ -200,17 +208,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => SubmissionScreen(
-                                  work: task,
-                                  workerId: widget.workerId,
-                                ),
-                          ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => SubmissionScreen(
+                                work: task,
+                                workerId: widget.workerId,
+                              ),
                         ),
+                      );
+                    },
                     splashColor: _accentColor.withOpacity(0.1),
                     highlightColor: _accentColor.withOpacity(0.05),
                     child: Padding(
@@ -233,9 +242,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 6,
                                 ),
@@ -255,7 +264,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                       size: 16,
                                       color: statusColor,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
                                       task.status.toUpperCase(),
                                       style: TextStyle(
@@ -269,7 +278,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Text(
                             task.description,
                             style: TextStyle(
@@ -280,7 +289,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Icon(
@@ -288,17 +297,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 size: 16,
                                 color: Colors.grey[600],
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
                                 "Due: ${task.dueDate}",
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
                                   color: Colors.grey[600],
                                 ),
                               ),
-                              Spacer(),
+                              const Spacer(),
                               Container(
-                                padding: EdgeInsets.all(6),
+                                padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
                                   color: _accentColor.withOpacity(0.1),
                                   shape: BoxShape.circle,

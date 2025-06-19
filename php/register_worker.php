@@ -7,27 +7,27 @@ header('Content-Type: application/json');
 include_once("dbconnect.php");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'] ?? '';
     $name = $_POST['full_name'] ?? '';
     $email = $_POST['email'] ?? '';
     $password = sha1($_POST['password'] ?? '');
     $phone = $_POST['phone'] ?? '';
     $address = $_POST['address'] ?? '';
 
-
-    if (empty($name) || empty($email) || empty($_POST['password']) || empty($phone) || empty($address)) {
-        echo json_encode(["status" => "error", "message" => "All fields required"]);
+    if (empty($username) || empty($name) || empty($email) || empty($_POST['password']) || empty($phone) || empty($address)) {
+        echo json_encode(["status" => "error", "message" => "All fields are required."]);
         exit();
     }
 
-    $check = "SELECT * FROM workers WHERE email = '$email'";
+    $check = "SELECT * FROM workers WHERE email = '$email' OR username = '$username'";
     $result = $conn->query($check);
     if ($result && $result->num_rows > 0) {
-        echo json_encode(["status" => "error", "message" => "Email already registered"]);
+        echo json_encode(["status" => "error", "message" => "Username or Email already registered"]);
         exit();
     }
 
-    $sql = "INSERT INTO workers (full_name, email, password, phone, address) 
-            VALUES ('$name', '$email', '$password', '$phone', '$address')";
+    $sql = "INSERT INTO workers (username, full_name, email, password, phone, address) 
+            VALUES ('$username', '$name', '$email', '$password', '$phone', '$address')";
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(["status" => "success", "message" => "Registration successful"]);

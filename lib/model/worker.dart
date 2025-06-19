@@ -4,8 +4,16 @@ class Worker {
   String? email;
   String? phone;
   String? address;
+  String? username;
 
-  Worker({this.workerId, this.fullName, this.email, this.phone, this.address});
+  Worker({
+    this.workerId,
+    this.fullName,
+    this.email,
+    this.phone,
+    this.address,
+    this.username,
+  });
 
   Worker.fromJson(Map<String, dynamic> json) {
     workerId = json['id']?.toString();
@@ -13,9 +21,10 @@ class Worker {
     email = json['email'];
     phone = json['phone'];
     address = json['address'];
+    username = json['username'];
   }
 
-  get id => null;
+  String? get id => workerId;
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
@@ -24,6 +33,7 @@ class Worker {
     data['email'] = email;
     data['phone'] = phone;
     data['address'] = address;
+    data['username'] = username;
     return data;
   }
 

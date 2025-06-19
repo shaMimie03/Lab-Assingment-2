@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $worker = [
             "id" => $row["id"],
             "full_name" => $row["full_name"],
+            "username" => $row["username"],
             "email" => $row["email"],
             "phone" => $row["phone"],
             "address" => $row["address"]

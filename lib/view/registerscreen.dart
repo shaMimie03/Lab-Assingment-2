@@ -15,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -69,7 +70,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 8),
+                    _buildTextField(_usernameController, "Username"),
                     _buildTextField(_nameController, "Full Name"),
                     _buildTextField(
                       _emailController,
@@ -156,7 +158,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _confirmDialog() {
-    if (_nameController.text.isEmpty ||
+    if (_usernameController.text.isEmpty ||
+        _nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty ||
@@ -205,6 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final response = await http.post(
       Uri.parse("${MyConfig.myurl}/register_worker.php"),
       body: {
+        "username": _usernameController.text,
         "full_name": _nameController.text,
         "email": _emailController.text,
         "password": _passwordController.text,

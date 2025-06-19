@@ -16,7 +16,9 @@ This mobile application is developed using **Flutter**, **PHP**, and **MySQL** f
 - **Frontend**: Flutter (Dart)
 - **Backend**: PHP (REST API)
 - **Database**: MySQL
-- **Storage**: SharedPreferences (for login sessions)
+- **Storage**: SharedPreferences (for login sesgit add .
+git commit -m "Finalize project"
+sions)
 
 ## Getting Started
 

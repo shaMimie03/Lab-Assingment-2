@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:wtms/config.dart';
-import 'package:wtms/model/task.dart';
+import 'package:wtms/model/work.dart';
 
 class SubmissionScreen extends StatefulWidget {
-  final Task task;
+  final Work work;
   final int workerId;
 
-  const SubmissionScreen({required this.task, required this.workerId});
+  const SubmissionScreen({required this.work, required this.workerId});
 
   @override
   _SubmissionScreenState createState() => _SubmissionScreenState();
@@ -23,16 +23,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   Future<void> submitWork() async {
     final submissionText = _controller.text.trim();
-
     if (submissionText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter your submission details'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('Please enter your submission details', Colors.red);
       return;
     }
+
+    final confirmed = await _confirmSubmission();
+    if (confirmed != true) return;
 
     setState(() => _submitting = true);
 
@@ -41,37 +38,54 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         Uri.parse("${MyConfig.myurl}/submit_work.php"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          'work_id': widget.task.id.toString(),
+          'work_id': widget.work.id.toString(),
           'worker_id': widget.workerId.toString(),
           'submission_text': submissionText,
         }),
       );
 
       final data = jsonDecode(response.body);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(data['message']),
-          backgroundColor:
-              data['status'] == 'success' ? _primaryColor : Colors.red,
-        ),
-      );
 
       if (data['status'] == 'success') {
+        _showSnackBar(data['message'], _primaryColor);
         await Future.delayed(Duration(milliseconds: 500));
         Navigator.pop(context, true);
+      } else {
+        _showSnackBar(data['message'] ?? 'Submission failed', Colors.red);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to submit: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('Failed to submit: ${e.toString()}', Colors.red);
     } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
-      }
+      if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
+  Future<bool?> _confirmSubmission() async {
+    return showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Confirm Submission'),
+            content: Text('Are you sure you want to submit this task?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Submit'),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -94,61 +108,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Task Details',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: _primaryColor,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      widget.task.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    if (widget.task.description.isNotEmpty) ...[
-                      Text(
-                        widget.task.description,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                      ),
-                      SizedBox(height: 8),
-                    ],
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Due: ${widget.task.dueDate}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildTaskCard(),
             SizedBox(height: 24),
             Text(
               'Your Submission',
@@ -199,6 +159,53 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                           ),
                         ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Task Details',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: _primaryColor,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              widget.work.title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+            if (widget.work.description.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  widget.work.description,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+              ),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 8),
+                Text(
+                  'Due: ${widget.work.dueDate}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ],
             ),
           ],
         ),
