@@ -56,15 +56,10 @@ This mobile application is developed using **Flutter**, **PHP**, and **MySQL** f
 | `get_profile.php`    | Retrieve worker profile data                   |
 | `update_profile.php` | Save updated profile data                      |
 
-<<<<<<< HEAD
 - **Frontend**: Flutter (Dart)
 - **Backend**: PHP (REST API)
 - **Database**: MySQL
-- **Storage**: SharedPreferences (for login sesgit add .
-git commit -m "Finalize project"
-sions)
-=======
->>>>>>> 049b4fe8f72bd13e3883ce73f5d652b29e4f83eb
+- **Storage**: SharedPreferences 
 
 ## Getting Started
 1. Clone or download this repository.
